@@ -927,3 +927,116 @@ inner join keepcoding.estado e on e.id = pb.id_estado
 left join keepcoding.matricula m on p.dni = m.dni_alumno 
 left join keepcoding.curso c on c.id = m.id_curso;
 
+
+alter table keepcoding.estado add constraint pais_estado_unicos unique (id_pais, nombre);
+
+
+alter table keepcoding.modulo add constraint modulo_unico unique (nombre);
+
+insert into keepcoding.modulo (nombre) values 
+	('Modelado de datos e iniciación a SQL'),
+	('Fundamentos HTML y CSS3'),
+	('Frontend Avanzado'),
+	('Backend Avanzado'),
+	('Git'),
+	('Iniciación a Swift'),
+	('Lenguaje Kotlin'),
+	('IOS Avanzado'),
+	('Patrones de diseño'),
+	('NLP'),
+	('SQL Avanzado'),
+	('Estadística');
+
+
+
+-- Producto cartesiano
+
+alter table keepcoding.modulo_por_curso add constraint curso_modulo_unicos unique (id_curso, id_modulo);
+
+
+insert into keepcoding.modulo_por_curso (dni_profesor, id_modulo, id_curso, fecha_inicio)
+select p.dni_profesor, m.id , c.id, (now() - interval '14 day')::date fecha_inicio from keepcoding.curso c, keepcoding.modulo m 
+join (select row_number() over (order by dni_profesor) num_profesor, *  from keepcoding.profesor) p on p.num_profesor = m.id
+where c.nombre = 'Desarrollo Web Full Stack' and 
+m.nombre in ('Modelado de datos e iniciación a SQL', 'Frontend Avanzado', 'Backend Avanzado', 'Git');
+
+
+insert into keepcoding.modulo_por_curso (dni_profesor, id_modulo, id_curso, fecha_inicio)
+select p.dni_profesor, m.id , c.id, (now() - interval '14 day')::date fecha_inicio from keepcoding.curso c, keepcoding.modulo m 
+join (select row_number() over (order by dni_profesor) num_profesor, *  from keepcoding.profesor) p on p.num_profesor = m.id
+where c.nombre = 'Desarrollo de Apps Móviles Full Stack' and 
+m.nombre in ('Modelado de datos e iniciación a SQL', 'Git', 'Iniciación a Swift', 'Lenguaje Kotlin', 'IOS Avanzado', 'Patrones de diseño');
+
+insert into keepcoding.modulo_por_curso (dni_profesor, id_modulo, id_curso, fecha_inicio)
+select p.dni_profesor, m.id , c.id, (now() - interval '14 day')::date fecha_inicio from keepcoding.curso c, keepcoding.modulo m 
+join (select row_number() over (order by dni_profesor) num_profesor, *  from keepcoding.profesor) p on p.num_profesor = m.id
+where c.nombre = 'Big Data, Inteligencia Artificial & Machine Learning Full Stack' and 
+m.nombre in ('Modelado de datos e iniciación a SQL', 'NLP', 'SQL Avanzado', 'Estadística');
+
+
+select * from keepcoding.modulo_por_curso mpc;
+
+select row_number() over (order by dni_profesor) num_profesor, *  from keepcoding.profesor;
+
+
+alter table keepcoding.calificacion drop column apto;
+alter table keepcoding.calificacion add column nota float check (nota >= 0 and nota <= 10);
+
+select * from keepcoding.matricula m where m.id_curso = 2;
+
+select * from keepcoding.modulo_por_curso mpc ;
+
+
+
+select * from keepcoding.modulo_por_curso mpc where mpc.id_curso = 2;
+
+insert into keepcoding.calificacion (dni_alumno, id_modulo_curso, nota)
+select m.dni_alumno, mpc.id, (floor(random() * 16) * 0.5) + 2 from keepcoding.matricula m
+join keepcoding.modulo_por_curso mpc on m.id_curso = mpc.id_curso 
+left join keepcoding.calificacion c on c.dni_alumno = m.dni_alumno and mpc.id = c.id_modulo_curso
+where c.nota is null;
+
+select * from keepcoding.calificacion c 
+join keepcoding.modulo_por_curso mpc on c.id_modulo_curso = mpc.id
+join keepcoding.matricula m on m.dni_alumno = c.dni_alumno ;
+
+select * from (
+	(select * from keepcoding.calificacion c order by c.id desc limit 5)
+	union
+	(select * from keepcoding.calificacion c order by c.id desc offset 5 limit 5)
+) a
+order by id desc;
+
+
+select *, 
+case when nota >= 5 then 'Si'
+ 	 else 'No'
+ 	end apto
+from keepcoding.calificacion c;
+
+
+create view keepcoding.notas_medias as 
+select p.dni, p.nombre, concat(substring(p.primer_apellido,1,1), substring(p.segundo_apellido,1,1)) apellidos, c.nombre nombre_curso, round(avg(cl.nota)::numeric, 2) note_media from keepcoding.calificacion cl
+inner join keepcoding.modulo_por_curso mpc on cl.id_modulo_curso = mpc.id
+inner join keepcoding.curso c on mpc.id_curso = c.id 
+inner join keepcoding.persona p on p.dni = cl.dni_alumno
+group by p.dni, p.nombre, p.primer_apellido, p.segundo_apellido, c.nombre;
+
+
+create table keepcoding.tabla_notas_medias as 
+select p.dni, p.nombre, concat(substring(p.primer_apellido,1,1), substring(p.segundo_apellido,1,1)) apellidos, c.nombre nombre_curso, round(avg(cl.nota)::numeric, 2) note_media from keepcoding.calificacion cl
+inner join keepcoding.modulo_por_curso mpc on cl.id_modulo_curso = mpc.id
+inner join keepcoding.curso c on mpc.id_curso = c.id 
+inner join keepcoding.persona p on p.dni = cl.dni_alumno
+group by p.dni, p.nombre, p.primer_apellido, p.segundo_apellido, c.nombre;
+
+
+select * from keepcoding.notas_medias nm where nm.dni = '7925090A';
+select * from keepcoding.tabla_notas_medias nm where nm.dni = '7925090A';
+
+
+select * from keepcoding.calificacion c where c.dni_alumno = '7925090A';
+
+
+
+
